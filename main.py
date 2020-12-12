@@ -1,9 +1,13 @@
 import config
-
+from db_map import create_db
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
+import os
 
+if os.path.exists('dbase.db'):
+    print("base is exist")
+else: create_db()
 
 bot = Bot (token = config.token)
 dp = Dispatcher(bot)
@@ -24,6 +28,3 @@ async def echo_message(msg: types.Message):
 
 if __name__ == '__main__':
     executor.start_polling(dp)
-
-
-a = 2555855552

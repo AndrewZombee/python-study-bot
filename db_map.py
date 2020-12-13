@@ -1,6 +1,4 @@
 from sqlalchemy import Column, Integer, String, create_engine, MetaData, Table
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy_utils import database_exists, create_database
 
 def create_db():
    engine = create_engine('sqlite:///dbase.db', echo = True)
@@ -13,13 +11,14 @@ def create_db():
       Column('name', String),
       Column('lastname', String),
       Column('position', String),
-      Column('registration date', Integer),
+      Column('registration_date', Integer),
       Column('last_time', Integer)
    )
 
    work_table = Table(
       'work_table', meta,
       Column('id_event', Integer, primary_key = True),
+      Column('id_user', Integer),
       Column('date_event', Integer),
       Column('name_object', String),
       Column('where_need', String),

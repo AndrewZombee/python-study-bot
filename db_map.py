@@ -17,7 +17,7 @@ def create_db():
 
    work_table = Table(
       'work_table', meta,
-      Column('id_event', Integer, primary_key = True),
+      Column('id_event', Integer, primary_key=True, autoincrement=True),
       Column('id_user', Integer),
       Column('date_event', Integer),
       Column('name_object', String),

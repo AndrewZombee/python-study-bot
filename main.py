@@ -115,27 +115,55 @@ async def order_mtr(msg: types.Message):
 
 @dp.message_handler(state=OrderMtr.st1, content_types=types.ContentTypes.TEXT)
 async def echo_message(msg: types.Message, state: FSMContext):
-    await OrderMtr.st2.set()
-    await bot.send_message(msg.from_user.id, 'Сколько?')
-    await state.update_data(name_mtr=msg.text)
+    if msg.text.lower() == 'отмена':
+        await state.finish()
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add('/order')
+        keyboard.add('Мои заказы')
+        await bot.send_message(msg.from_user.id, 'Выберите команду', reply_markup=keyboard)
+    else:
+        await OrderMtr.st2.set()
+        await bot.send_message(msg.from_user.id, 'Сколько?')
+        await state.update_data(name_mtr=msg.text)
 
 @dp.message_handler(state=OrderMtr.st2, content_types=types.ContentTypes.TEXT)
 async def echo_message(msg: types.Message, state: FSMContext):
-    await OrderMtr.st3.set()
-    await bot.send_message(msg.from_user.id, 'Когда?')
-    await state.update_data(count_mtr=msg.text)
+    if msg.text.lower() == 'отмена':
+        await state.finish()
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add('/order')
+        keyboard.add('Мои заказы')
+        await bot.send_message(msg.from_user.id, 'Выберите команду', reply_markup=keyboard)
+    else:
+        await OrderMtr.st3.set()
+        await bot.send_message(msg.from_user.id, 'Когда?')
+        await state.update_data(count_mtr=msg.text)
 
 @dp.message_handler(state=OrderMtr.st3, content_types=types.ContentTypes.TEXT)
 async def echo_message(msg: types.Message, state: FSMContext):
-    await OrderMtr.st4.set()
-    await bot.send_message(msg.from_user.id, 'На какой объект:')
-    await state.update_data(when_mtr=msg.text)
+    if msg.text.lower() == 'отмена':
+        await state.finish()
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add('/order')
+        keyboard.add('Мои заказы')
+        await bot.send_message(msg.from_user.id, 'Выберите команду', reply_markup=keyboard)
+    else:
+        await OrderMtr.st4.set()
+        await bot.send_message(msg.from_user.id, 'На какой объект:')
+        await state.update_data(when_mtr=msg.text)
 
 @dp.message_handler(state=OrderMtr.st4, content_types=types.ContentTypes.TEXT)
 async def echo_message(msg: types.Message, state: FSMContext):
-    await OrderMtr.st5.set()
-    await bot.send_message(msg.from_user.id, 'Комментарий:')
-    await state.update_data(where_need=msg.text)
+    if msg.text.lower() == 'отмена':
+        await state.finish()
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add('/order')
+        keyboard.add('Мои заказы')
+        await bot.send_message(msg.from_user.id, 'Выберите команду', reply_markup=keyboard)
+    else:
+        await OrderMtr.st5.set()
+        await bot.send_message(msg.from_user.id, 'Комментарий:')
+        await state.update_data(where_need=msg.text)
 
 @dp.message_handler(state=OrderMtr.st5, content_types=types.ContentTypes.TEXT)
 async def echo_message(msg: types.Message, state: FSMContext):
@@ -150,9 +178,12 @@ async def echo_message(msg: types.Message, state: FSMContext):
 @dp.message_handler(state=OrderMtr.st6, content_types=types.ContentTypes.TEXT)
 async def echo_message(msg: types.Message, state: FSMContext):
     user_data = await state.get_data()
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add('/order')
+    keyboard.add('Мои заказы')
     if msg.text.lower() == 'да':
         await msg.reply("Ок")
-        await bot.send_message(msg.from_user.id,'Заказ зарегистрирован, Ваши заказы можно посмотреть по команде "Мои заказы"')
+        await bot.send_message(msg.from_user.id,'Заказ зарегистрирован, Ваши заказы можно посмотреть по команде "Мои заказы"', reply_markup=keyboard)
         try:
             sqlite_connection = sqlite3.connect('dbase.db')
             cursor = sqlite_connection.cursor()
@@ -170,8 +201,6 @@ async def echo_message(msg: types.Message, state: FSMContext):
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
     else:
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add('/order')
         await msg.reply("Начните занова", reply_markup=keyboard)
     await state.finish()
 
@@ -181,14 +210,23 @@ async def work_ord(msg: types.Message, state: FSMContext):
     user_data = await state.get_data()
     if user_data['work_order_status'] == 'Отмена':
         await state.finish()
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add('/order')
+        keyboard.add('Мои заказы')
+        await bot.send_message(msg.from_user.id, 'Выберите команду', reply_markup=keyboard)
     elif user_data['work_order_status'] == 'Редактировать':
-        await WorkOrder.st2.set()
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add('/order')
+        keyboard.add('Мои заказы')
+        await bot.send_message(msg.from_user.id, 'пока не работает', reply_markup=keyboard)
+        await state.finish()
     elif user_data['work_order_status'] == 'Выполнить':
         try:
             sqlite_connection = sqlite3.connect('dbase.db')
             cursor = sqlite_connection.cursor()
             sqlite_insert_with_param = """UPDATE work_table set status = ? where id_event = ?"""
-            data_tuple = ('Выполнено', user_data['nomer_order'].replace("/", ""))
+            data_ins = user_data['nomer_order'].replace("/", "")
+            data_tuple = ('Выполнено', int(data_ins))
             print(data_tuple)
             cursor.execute(sqlite_insert_with_param, data_tuple)
             sqlite_connection.commit()
@@ -197,8 +235,10 @@ async def work_ord(msg: types.Message, state: FSMContext):
 
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
-        await msg.answer(f"Заказ № {user_data['nomer_order']} Выполнен")
-        print(user_data['nomer_order'])
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add('/order')
+        keyboard.add('Мои заказы')
+        await msg.answer(f"Заказ № {user_data['nomer_order']} Выполнен", reply_markup=keyboard)
         await state.finish()
 
 
@@ -229,10 +269,10 @@ async def info_other(msg: types.Message, state: FSMContext):
 
     if mystr == '/':
         msg_usr = msg.text.lower().replace("/", "")
+        print(type(msg_usr))
         sqlite_connection = sqlite3.connect('dbase.db')
         cursor = sqlite_connection.cursor()
-        sql_select_query = """select * from work_table where id_event = ?"""
-        cursor.execute(sql_select_query, msg_usr)
+        cursor.execute("select * from work_table where id_event = ?", (msg_usr,))
         user_data = cursor.fetchall()
         nomer_order = '/' + str(user_data[0][0])
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -243,6 +283,11 @@ async def info_other(msg: types.Message, state: FSMContext):
         await msg.answer(f"Номер: {nomer_order}\nДата: {user_data[0][2]}\nСтатус: {user_data[0][8]}\nЧто надо: {user_data[0][3]}\nКогда надо: {user_data[0][4]}\nКуда надо: {user_data[0][6]}\nСколько надо: {user_data[0][5]}\nКомментарий: {user_data[0][7]}", reply_markup=keyboard)
         await WorkOrder.st1.set()
         await state.update_data(nomer_order=msg.text)
+
+
+
+
+
 
 if __name__ == '__main__':
     executor.start_polling(dp)

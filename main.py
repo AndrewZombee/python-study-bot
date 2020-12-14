@@ -32,6 +32,7 @@ class OrderMtr(StatesGroup):
 class WorkOrder(StatesGroup):
     st1 = State()
     st2 = State()
+    st3 = State()
 
 
 bot = Bot (token = config.token)
@@ -55,7 +56,7 @@ async def process_start_command(msg: types.Message):
 async def echo_message(msg: types.Message, state: FSMContext):
     await OrderReg.st2.set()
     await bot.send_message(msg.from_user.id, 'Фамилия')
-    await state.update_data(user_name=msg.text)
+    await state.update_data(usr_name=msg.text)
 
 @dp.message_handler(state=OrderReg.st2, content_types=types.ContentTypes.TEXT)
 async def echo_message(msg: types.Message, state: FSMContext):
@@ -66,16 +67,20 @@ async def echo_message(msg: types.Message, state: FSMContext):
 
 @dp.message_handler(state=OrderReg.st3, content_types=types.ContentTypes.TEXT)
 async def echo_message(msg: types.Message, state: FSMContext):
-    await OrderReg.next()
+    await OrderReg.st4.set()
     await state.update_data(user_position=msg.text.lower())
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add('Да')
+    keyboard.add('Нет')
     user_data = await state.get_data()
-    await bot.send_message(msg.from_user.id, f"Данные верны? \n Имя: {user_data['user_name']} \n Фамилия: {user_data['user_lastname']} \n Должность: {user_data['user_position']} \n Если все верно наберите 'ДА' если нет 'Нет' и начните регистрацию занова")
+    await bot.send_message(msg.from_user.id, f"Данные верны? \n Имя: {user_data['usr_name']} \n Фамилия: {user_data['user_lastname']} \n Должность: {user_data['user_position']} \n Если все верно наберите 'ДА' если нет 'Нет' и начните регистрацию занова", reply_markup=keyboard)
 
 
 @dp.message_handler(state=OrderReg.st4, content_types=types.ContentTypes.TEXT)
 async def echo_message(msg: types.Message, state: FSMContext):
-    await state.finish()
     user_data = await state.get_data()
+    print(user_data['usr_name'])
+    await state.finish()
     if msg.text.lower() == 'да':
         await msg.reply("Ок")
         await bot.send_message(msg.from_user.id, 'Регистрация прошла успешно, инструкцию по использованию бота, можно посмотреть по команде /help')
@@ -86,7 +91,7 @@ async def echo_message(msg: types.Message, state: FSMContext):
                                   (id, name, lastname, position, registration_date, last_time)
                                   VALUES
                                   (?, ?, ?, ?, ?, ?);"""
-            data_tuple = (msg.from_user.id, user_data['user_name'], user_data['user_lastname'], user_data['user_position'], msg.date, 2586328)
+            data_tuple = (msg.from_user.id, user_data['usr_name'], user_data['user_lastname'], user_data['user_position'], msg.date, 2586328)
             print(data_tuple)
             cursor.execute(sqlite_insert_with_param, data_tuple)
             sqlite_connection.commit()
@@ -105,7 +110,7 @@ async def echo_message(msg: types.Message, state: FSMContext):
 async def help_spravka(msg: types.Message):
    await bot.send_message(msg.from_user.id, config.help_msg)
 
-@dp.message_handler(commands = ['order'], state="*")
+@dp.message_handler(commands = ['заказ'], state="*")
 async def order_mtr(msg: types.Message):
     await msg.answer('Что требуется заказать?')
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -118,7 +123,7 @@ async def echo_message(msg: types.Message, state: FSMContext):
     if msg.text.lower() == 'отмена':
         await state.finish()
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add('/order')
+        keyboard.add('/заказ')
         keyboard.add('Мои заказы')
         await bot.send_message(msg.from_user.id, 'Выберите команду', reply_markup=keyboard)
     else:
@@ -131,7 +136,7 @@ async def echo_message(msg: types.Message, state: FSMContext):
     if msg.text.lower() == 'отмена':
         await state.finish()
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add('/order')
+        keyboard.add('/заказ')
         keyboard.add('Мои заказы')
         await bot.send_message(msg.from_user.id, 'Выберите команду', reply_markup=keyboard)
     else:
@@ -144,7 +149,7 @@ async def echo_message(msg: types.Message, state: FSMContext):
     if msg.text.lower() == 'отмена':
         await state.finish()
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add('/order')
+        keyboard.add('/заказ')
         keyboard.add('Мои заказы')
         await bot.send_message(msg.from_user.id, 'Выберите команду', reply_markup=keyboard)
     else:
@@ -157,7 +162,7 @@ async def echo_message(msg: types.Message, state: FSMContext):
     if msg.text.lower() == 'отмена':
         await state.finish()
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add('/order')
+        keyboard.add('/заказ')
         keyboard.add('Мои заказы')
         await bot.send_message(msg.from_user.id, 'Выберите команду', reply_markup=keyboard)
     else:
@@ -179,7 +184,7 @@ async def echo_message(msg: types.Message, state: FSMContext):
 async def echo_message(msg: types.Message, state: FSMContext):
     user_data = await state.get_data()
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add('/order')
+    keyboard.add('/заказ')
     keyboard.add('Мои заказы')
     if msg.text.lower() == 'да':
         await msg.reply("Ок")
@@ -211,16 +216,31 @@ async def work_ord(msg: types.Message, state: FSMContext):
     if user_data['work_order_status'] == 'Отмена':
         await state.finish()
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add('/order')
+        keyboard.add('/заказ')
         keyboard.add('Мои заказы')
         await bot.send_message(msg.from_user.id, 'Выберите команду', reply_markup=keyboard)
     elif user_data['work_order_status'] == 'Редактировать':
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add('/order')
+        keyboard.add('/заказ')
         keyboard.add('Мои заказы')
         await bot.send_message(msg.from_user.id, 'пока не работает', reply_markup=keyboard)
         await state.finish()
     elif user_data['work_order_status'] == 'Выполнить':
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add('Да')
+        keyboard.add('Нет')
+        await WorkOrder.st2.set()
+        await msg.answer(f"Добавить комментарий?", reply_markup=keyboard)
+
+
+@dp.message_handler(state=WorkOrder.st2, content_types=types.ContentTypes.TEXT)
+async def add_comm_n(msg: types.Message, state: FSMContext):
+    await state.update_data(add_comm=msg.text)
+    user_data = await state.get_data()
+    if user_data['add_comm'] == 'Да':
+        await WorkOrder.st3.set()
+        await msg.answer(f"Напишите ваш комментарий")
+    if user_data['add_comm'] == 'Нет':
         try:
             sqlite_connection = sqlite3.connect('dbase.db')
             cursor = sqlite_connection.cursor()
@@ -232,15 +252,44 @@ async def work_ord(msg: types.Message, state: FSMContext):
             sqlite_connection.commit()
             print("Запись успешно вставлена ​в таблицу work_table ", cursor.rowcount)
             cursor.close()
-
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite", error)
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        keyboard.add('/order')
+        keyboard.add('/заказ')
         keyboard.add('Мои заказы')
         await msg.answer(f"Заказ № {user_data['nomer_order']} Выполнен", reply_markup=keyboard)
         await state.finish()
 
+@dp.message_handler(state=WorkOrder.st3, content_types=types.ContentTypes.TEXT)
+async def add_comm_y(msg: types.Message, state: FSMContext):
+    await state.update_data(add_comm=msg.text)
+    user_data = await state.get_data()
+    try:
+        sqlite_connection = sqlite3.connect('dbase.db')
+        cursor = sqlite_connection.cursor()
+        sql_select_query = """select name, lastname from users where id = ?"""
+        cursor.execute(sql_select_query, [msg.from_user.id])
+        user_name_lastname = cursor.fetchall()
+        sql_select_query = """select comments from work_table where id_event = ?"""
+        data_ins = user_data['nomer_order'].replace("/", "")
+        cursor.execute(sql_select_query, (data_ins,))
+        user_comment_db = cursor.fetchall()
+        ins_comment = f" {user_comment_db[0][0]}\n{user_name_lastname[0][1]} {user_name_lastname[0][0]}: {user_data['add_comm']}"
+        print(ins_comment)
+        sqlite_insert_with_param = """UPDATE work_table set status = ?, comments = ? where id_event = ?"""
+        data_tuple = ('Выполнено', ins_comment, int(data_ins))
+        print(data_tuple)
+        cursor.execute(sqlite_insert_with_param, data_tuple)
+        sqlite_connection.commit()
+        print("Запись успешно вставлена ​в таблицу work_table ", cursor.rowcount)
+        cursor.close()
+    except sqlite3.Error as error:
+        print("Ошибка при работе с SQLite", error)
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add('/заказ')
+    keyboard.add('Мои заказы')
+    await msg.answer(f"Заказ № {user_data['nomer_order']} Выполнен", reply_markup=keyboard)
+    await state.finish()
 
 @dp.message_handler(state="*", content_types=types.ContentTypes.TEXT)
 async def info_other(msg: types.Message, state: FSMContext):
@@ -269,7 +318,6 @@ async def info_other(msg: types.Message, state: FSMContext):
 
     if mystr == '/':
         msg_usr = msg.text.lower().replace("/", "")
-        print(type(msg_usr))
         sqlite_connection = sqlite3.connect('dbase.db')
         cursor = sqlite_connection.cursor()
         cursor.execute("select * from work_table where id_event = ?", (msg_usr,))
@@ -278,7 +326,7 @@ async def info_other(msg: types.Message, state: FSMContext):
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
         keyboard.add('Выполнить')
         keyboard.add('Редактировать')
-        keyboard.add('/order')
+        keyboard.add('/заказ')
         keyboard.add('Отмена')
         await msg.answer(f"Номер: {nomer_order}\nДата: {user_data[0][2]}\nСтатус: {user_data[0][8]}\nЧто надо: {user_data[0][3]}\nКогда надо: {user_data[0][4]}\nКуда надо: {user_data[0][6]}\nСколько надо: {user_data[0][5]}\nКомментарий: {user_data[0][7]}", reply_markup=keyboard)
         await WorkOrder.st1.set()

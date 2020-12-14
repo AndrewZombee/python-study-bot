@@ -29,6 +29,14 @@ class OrderMtr(StatesGroup):
     st5 = State()
     st6 = State()
 
+class WorkOrder(StatesGroup):
+    st1 = State()
+    st2 = State()
+    st3 = State()
+    st4 = State()
+    st5 = State()
+    st6 = State()
+
 bot = Bot (token = config.token)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
@@ -163,8 +171,22 @@ async def echo_message(msg: types.Message, state: FSMContext):
     user_data = await state.get_data()
     await state.finish()
 
-@dp.message_handler()
-async def info_other(msg: types.Message):
+@dp.message_handler(state=WorkOrder.st1, content_types=types.ContentTypes.TEXT)
+async def work_ord(msg: types.Message, state: FSMContext):
+    await bot.send_message(msg.from_user.id, 'Сколько?')
+    await state.update_data(work_order_status=msg.text)
+    user_data = await state.get_data()
+    if user_data['work_order_status'] == 'Отмена':
+        await state.finish()
+    elif user_data['work_order_status'] == 'Редактировать':
+        await WorkOrder.st2.set()
+    elif user_data['work_order_status'] == 'Выполнить':
+        print(user_data['nomer_order'])
+        await state.finish()
+
+
+@dp.message_handler(state="*", content_types=types.ContentTypes.TEXT)
+async def info_other(msg: types.Message, state: FSMContext):
     if msg.text.lower() == 'мои данные':
         sqlite_connection = sqlite3.connect('dbase.db')
         cursor = sqlite_connection.cursor()
@@ -195,15 +217,14 @@ async def info_other(msg: types.Message):
         sql_select_query = """select * from work_table where id_event = ?"""
         cursor.execute(sql_select_query, msg_usr)
         user_data = cursor.fetchall()
-        if not user_data == []:
-            cz = (len(user_data))
-            for z in range(cz):
-                nomer_order = '/' + str(user_data[z][0])
-                await msg.reply(
-                    f"Номер: {nomer_order}\nДата: {user_data[z][2]}\nСтатус: {user_data[z][8]}\nЧто надо: {user_data[z][3]}\nКогда надо: {user_data[z][4]}\nКуда надо: {user_data[z][6]}\nСколько надо: {user_data[z][5]}\nКомментарий: {user_data[z][7]}")
-        else:
-            await msg.reply('У вас нет заказов')
-
+        nomer_order = '/' + str(user_data[0][0])
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add('Выполнить')
+        keyboard.add('Редактировать')
+        keyboard.add('Отмена')
+        await msg.answer(f"Номер: {nomer_order}\nДата: {user_data[0][2]}\nСтатус: {user_data[0][8]}\nЧто надо: {user_data[0][3]}\nКогда надо: {user_data[0][4]}\nКуда надо: {user_data[0][6]}\nСколько надо: {user_data[0][5]}\nКомментарий: {user_data[0][7]}", reply_markup=keyboard)
+        await WorkOrder.st1.set()
+        await state.update_data(nomer_order=msg.text)
 
 if __name__ == '__main__':
     executor.start_polling(dp)

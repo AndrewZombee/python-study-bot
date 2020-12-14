@@ -304,7 +304,7 @@ async def info_other(msg: types.Message, state: FSMContext):
     if msg.text.lower() == 'мои заказы':
         sqlite_connection = sqlite3.connect('dbase.db')
         cursor = sqlite_connection.cursor()
-        sql_select_query = """select * from work_table where id_user = ?"""
+        sql_select_query = """select * from work_table where id_user = ? and status = 'Активный' """
         cursor.execute(sql_select_query, [msg.from_user.id])
         user_data = cursor.fetchall()
         if not user_data == []:
@@ -331,6 +331,34 @@ async def info_other(msg: types.Message, state: FSMContext):
         await msg.answer(f"Номер: {nomer_order}\nДата: {user_data[0][2]}\nСтатус: {user_data[0][8]}\nЧто надо: {user_data[0][3]}\nКогда надо: {user_data[0][4]}\nКуда надо: {user_data[0][6]}\nСколько надо: {user_data[0][5]}\nКомментарий: {user_data[0][7]}", reply_markup=keyboard)
         await WorkOrder.st1.set()
         await state.update_data(nomer_order=msg.text)
+
+    if msg.text.lower() == 'выполненные':
+        sqlite_connection = sqlite3.connect('dbase.db')
+        cursor = sqlite_connection.cursor()
+        sql_select_query = """select * from work_table where id_user = ? and status = 'Выполнено'"""
+        cursor.execute(sql_select_query, [msg.from_user.id])
+        user_data = cursor.fetchall()
+        if not user_data == []:
+            cz = (len(user_data))
+            for z in range(cz):
+                nomer_order ='/' + str(user_data[z][0])
+                await msg.reply(f"Номер: {nomer_order}\nДата: {user_data[z][2]}\nСтатус: {user_data[z][8]}\nЧто надо: {user_data[z][3]}\nКогда надо: {user_data[z][4]}\nКуда надо: {user_data[z][6]}\nСколько надо: {user_data[z][5]}\nКомментарий: {user_data[z][7]}")
+        else: await msg.reply('У вас нет заказов')
+
+    if msg.text.lower() == 'все заказы':
+        sqlite_connection = sqlite3.connect('dbase.db')
+        cursor = sqlite_connection.cursor()
+        sql_select_query = """select * from work_table where id_user = ? """
+        cursor.execute(sql_select_query, [msg.from_user.id])
+        user_data = cursor.fetchall()
+        if not user_data == []:
+            cz = (len(user_data))
+            for z in range(cz):
+                nomer_order = '/' + str(user_data[z][0])
+                await msg.reply(
+                    f"Номер: {nomer_order}\nДата: {user_data[z][2]}\nСтатус: {user_data[z][8]}\nЧто надо: {user_data[z][3]}\nКогда надо: {user_data[z][4]}\nКуда надо: {user_data[z][6]}\nСколько надо: {user_data[z][5]}\nКомментарий: {user_data[z][7]}")
+        else:
+            await msg.reply('У вас нет заказов')
 
 
 

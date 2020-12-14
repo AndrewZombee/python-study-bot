@@ -1,4 +1,4 @@
-token = '1478071389:AAFOURfBHlLyca1l69poG_mfWPOZaYyaimI'
+token = ''
 
 help_msg = """Для регистрации воспользуйтесь коммандой /start\n
 Введите команду /заказ чтобы начать заказ

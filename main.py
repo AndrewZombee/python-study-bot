@@ -8,6 +8,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 import os
+import re
 import sqlite3
 
 if os.path.exists('dbase.db'):
@@ -26,6 +27,7 @@ class OrderMtr(StatesGroup):
     st3 = State()
     st4 = State()
     st5 = State()
+    st6 = State()
 
 bot = Bot (token = config.token)
 dp = Dispatcher(bot, storage=MemoryStorage())
@@ -118,17 +120,23 @@ async def echo_message(msg: types.Message, state: FSMContext):
 @dp.message_handler(state=OrderMtr.st3, content_types=types.ContentTypes.TEXT)
 async def echo_message(msg: types.Message, state: FSMContext):
     await OrderMtr.st4.set()
-    await bot.send_message(msg.from_user.id, 'Комментарий:')
+    await bot.send_message(msg.from_user.id, 'На какой объект:')
     await state.update_data(when_mtr=msg.text)
 
 @dp.message_handler(state=OrderMtr.st4, content_types=types.ContentTypes.TEXT)
 async def echo_message(msg: types.Message, state: FSMContext):
     await OrderMtr.st5.set()
-    await state.update_data(user_comment=msg.text.lower())
-    user_data = await state.get_data()
-    await bot.send_message(msg.from_user.id,f"Данные верны?\n Наименование: {user_data['name_mtr']}\n Сколько: {user_data['count_mtr']}\n Когда: {user_data['when_mtr']}\n Комментарий: {user_data['user_comment']}\n Если все верно наберите 'ДА' если нет 'Нет' и начните заказ занова")
+    await bot.send_message(msg.from_user.id, 'Комментарий:')
+    await state.update_data(where_need=msg.text)
 
 @dp.message_handler(state=OrderMtr.st5, content_types=types.ContentTypes.TEXT)
+async def echo_message(msg: types.Message, state: FSMContext):
+    await OrderMtr.st6.set()
+    await state.update_data(user_comment=msg.text.lower())
+    user_data = await state.get_data()
+    await bot.send_message(msg.from_user.id,f"Данные верны?\n Наименование: {user_data['name_mtr']}\n Сколько: {user_data['count_mtr']}\n Когда: {user_data['when_mtr']}\n Куда: {user_data['where_need']}\n Комментарий: {user_data['user_comment']}\n Если все верно наберите 'ДА' если нет 'Нет' и начните заказ занова")
+
+@dp.message_handler(state=OrderMtr.st6, content_types=types.ContentTypes.TEXT)
 async def echo_message(msg: types.Message, state: FSMContext):
     user_data = await state.get_data()
     if msg.text.lower() == 'да':
@@ -138,10 +146,10 @@ async def echo_message(msg: types.Message, state: FSMContext):
             sqlite_connection = sqlite3.connect('dbase.db')
             cursor = sqlite_connection.cursor()
             sqlite_insert_with_param = """INSERT INTO work_table
-                                          (id_user, date_event, name_object, Count_o, where_need, comments)
+                                          (id_user, date_event, name_object, Count_o, when_need, where_need, comments, status)
                                           VALUES
-                                          (?, ?, ?, ?, ?, ?);"""
-            data_tuple = (msg.from_user.id, msg.date, user_data['name_mtr'], user_data['count_mtr'], user_data['when_mtr'], user_data['user_comment'])
+                                          (?, ?, ?, ?, ?, ?, ?, ?);"""
+            data_tuple = (msg.from_user.id, msg.date, user_data['name_mtr'], user_data['count_mtr'], user_data['when_mtr'], user_data['where_need'], user_data['user_comment'], 'Активный')
             print(data_tuple)
             cursor.execute(sqlite_insert_with_param, data_tuple)
             sqlite_connection.commit()
@@ -172,13 +180,29 @@ async def info_other(msg: types.Message):
         cursor.execute(sql_select_query, [msg.from_user.id])
         user_data = cursor.fetchall()
         if not user_data == []:
-            print(len(user_data))
             cz = (len(user_data))
             for z in range(cz):
-                await msg.reply(f"Дата: {user_data[z][1]}\nЧто надо: {user_data[z][3]}\nКогда надо: {user_data[z][4]}\nСколько надо: {user_data[z][5]}\nКомментарий: {user_data[z][7]}")
+                nomer_order ='/' + str(user_data[z][0])
+                await msg.reply(f"Номер: {nomer_order}\nДата: {user_data[z][2]}\nСтатус: {user_data[z][8]}\nЧто надо: {user_data[z][3]}\nКогда надо: {user_data[z][4]}\nКуда надо: {user_data[z][6]}\nСколько надо: {user_data[z][5]}\nКомментарий: {user_data[z][7]}")
         else: await msg.reply('У вас нет заказов')
 
+    mystr = re.sub(r"[1234567890]", "", msg.text.lower())
 
+    if mystr == '/':
+        msg_usr = msg.text.lower().replace("/", "")
+        sqlite_connection = sqlite3.connect('dbase.db')
+        cursor = sqlite_connection.cursor()
+        sql_select_query = """select * from work_table where id_event = ?"""
+        cursor.execute(sql_select_query, msg_usr)
+        user_data = cursor.fetchall()
+        if not user_data == []:
+            cz = (len(user_data))
+            for z in range(cz):
+                nomer_order = '/' + str(user_data[z][0])
+                await msg.reply(
+                    f"Номер: {nomer_order}\nДата: {user_data[z][2]}\nСтатус: {user_data[z][8]}\nЧто надо: {user_data[z][3]}\nКогда надо: {user_data[z][4]}\nКуда надо: {user_data[z][6]}\nСколько надо: {user_data[z][5]}\nКомментарий: {user_data[z][7]}")
+        else:
+            await msg.reply('У вас нет заказов')
 
 
 if __name__ == '__main__':

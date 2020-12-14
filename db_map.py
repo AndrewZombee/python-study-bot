@@ -21,10 +21,11 @@ def create_db():
       Column('id_user', Integer),
       Column('date_event', Integer),
       Column('name_object', String),
-      Column('where_need', String),
+      Column('when_need', String),
       Column('Count_o', String),
-      Column('who_ordered', String),
+      Column('where_need', String),
       Column('comments', String),
+      Column('status', String),
       Column('foto_id', String),
       Column ('last_edit', Integer)
    )
